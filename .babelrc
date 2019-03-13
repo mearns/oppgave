@@ -1,0 +1,16 @@
+{
+  "sourceMaps": "inline",
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": "maintained node versions"
+      }
+    ]
+  ],
+  "plugins": [
+    "@babel/plugin-transform-object-assign",
+    "@babel/plugin-proposal-object-rest-spread",
+    "source-map-support"
+  ]
+}
