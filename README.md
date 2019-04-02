@@ -1,6 +1,6 @@
 # oppgave
 
-**This project is a Work In Progress and not yet ready for use**
+**Warning:** This project is a Work In Progress and not yet ready for use
 
 ## Overview
 
@@ -47,15 +47,18 @@ and then using those to make a request to a database before transforming the
 database result set:
 
 ```javascript
-const getCredentialsTask = defineTask(
-  [
-    () => readFile('credentials.json', 'utf8')
-  ],
-  (contents) => {
-    const parsedCredsFile = JSON.parse(contents)
-    return [parsedCredsFile.username, parsedCredsFile.token]
-  }
-)
-// XXX: Now what? How do I get the creds task as an input to
-// another non-pure function, making the DB request?
+const {a, b, c} = defineTask(15, {
+  a: i => i * i,
+  b: i => i + 1,
+  c: i => requestResourceAtIndex(i)
+})
+
+const [e, f] = defineTask([a, b], [
+  (a, b) => a + b,
+  (a, b) => a * b
+])
+
+const g = defineTask([c, a, e], (c, a, e) => c.frob(a, e))
+
+g.then(g => respond(g)))
 ```
