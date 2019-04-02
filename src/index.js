@@ -111,9 +111,9 @@ export default class Task {
       }))
     }
 
-    return Promise.all(stagePromises)
+    const p = Promise.all(stagePromises)
       .then(stageValues => ({
-        getOutputs: (stages) => {
+        getResult: (stages) => {
           if (isStage(stages)) {
             return stages._getFromArray(stageValues)
           } else if (Array.isArray(stages)) {
@@ -128,6 +128,21 @@ export default class Task {
           }
         }
       }))
+
+    p.waitFor = (stages) => {
+      if (isStage(stages)) {
+        return stages._getFromArray(stagePromises)
+      } else if (Array.isArray(stages)) {
+        return Promise.map(stages, stage => stage._getFromArray(stagePromises))
+      } else if (typeof stages === 'object') {
+        return Promise.map(Object.entries(stages), ([propName, stage]) => {
+          return stage._getFromArray(stagePromises).then(stageValue => ([propName, stageValue]))
+        }).then(buildObject)
+      } else {
+        throw new TypeError(`Unknown stage shape: ${stages}`)
+      }
+    }
+    return p
   }
 }
 Task.withSingleInput = function () {

@@ -22,7 +22,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(31)
 
-    expect(res.getOutputs(stageA)).to.deep.equal(62)
+    expect(res.getResult(stageA)).to.deep.equal(62)
   })
 
   it('should support single input port with array arguments', async () => {
@@ -33,7 +33,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute([3, 1, 4, 1, 5, 9])
 
-    expect(res.getOutputs(stageA)).to.deep.equal(6)
+    expect(res.getResult(stageA)).to.deep.equal(6)
   })
 
   it('should support an array of input ports to the task', async () => {
@@ -45,8 +45,8 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute([2, 3, 5])
 
-    expect(res.getOutputs(stageA)).to.deep.equal(14)
-    expect(res.getOutputs(stageB)).to.deep.equal(8)
+    expect(res.getResult(stageA)).to.deep.equal(14)
+    expect(res.getResult(stageB)).to.deep.equal(8)
   })
 
   it('should support an object of input ports to the task', async () => {
@@ -58,8 +58,8 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute({ a: 11, b: 7, c: 5 })
 
-    expect(res.getOutputs(stageA)).to.deep.equal(77)
-    expect(res.getOutputs(stageB)).to.deep.equal(12)
+    expect(res.getResult(stageA)).to.deep.equal(77)
+    expect(res.getResult(stageB)).to.deep.equal(12)
   })
 
   it('should support wiring a stage to two follow on stages', async () => {
@@ -71,8 +71,8 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(7)
 
-    expect(res.getOutputs(stageA)).to.deep.equal(49)
-    expect(res.getOutputs(stageB)).to.deep.equal(14)
+    expect(res.getResult(stageA)).to.deep.equal(49)
+    expect(res.getResult(stageB)).to.deep.equal(14)
   })
 
   it('should support an array of wires into a stage', async () => {
@@ -85,9 +85,9 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(5)
 
-    expect(res.getOutputs(stageA)).to.deep.equal(25)
-    expect(res.getOutputs(stageB)).to.deep.equal(10)
-    expect(res.getOutputs(stageC)).to.deep.equal(44)
+    expect(res.getResult(stageA)).to.deep.equal(25)
+    expect(res.getResult(stageB)).to.deep.equal(10)
+    expect(res.getResult(stageC)).to.deep.equal(44)
   })
 
   it('should support a single wire into a stage', async () => {
@@ -99,8 +99,8 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(23)
 
-    expect(res.getOutputs(stageA)).to.deep.equal(529)
-    expect(res.getOutputs(stageB)).to.deep.equal(560)
+    expect(res.getResult(stageA)).to.deep.equal(529)
+    expect(res.getResult(stageB)).to.deep.equal(560)
   })
 
   it('should support an object of wires into a stage', async () => {
@@ -113,9 +113,9 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(3)
 
-    expect(res.getOutputs(stageA)).to.deep.equal(9)
-    expect(res.getOutputs(stageB)).to.deep.equal(6)
-    expect(res.getOutputs(stageC)).to.deep.equal(24)
+    expect(res.getResult(stageA)).to.deep.equal(9)
+    expect(res.getResult(stageB)).to.deep.equal(6)
+    expect(res.getResult(stageC)).to.deep.equal(24)
   })
 
   it('should support an array of output ports', async () => {
@@ -127,7 +127,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(5)
 
-    expect(res.getOutputs([stageA, stageB, stageC])).to.deep.equal([
+    expect(res.getResult([stageA, stageB, stageC])).to.deep.equal([
       25,
       10,
       375
@@ -143,7 +143,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(4)
 
-    expect(res.getOutputs({ a: stageA, b: stageB, c: stageC })).to.deep.equal({
+    expect(res.getResult({ a: stageA, b: stageB, c: stageC })).to.deep.equal({
       a: 16,
       b: 8,
       c: 192
@@ -165,10 +165,10 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute({ a: 2, b: 3, c: 4 })
 
-    expect(res.getOutputs(stageD)).to.equal(6)
-    expect(res.getOutputs(stageE)).to.equal(9)
-    expect(res.getOutputs(stageF)).to.equal(11)
-    expect(res.getOutputs(stageG)).to.equal(15)
+    expect(res.getResult(stageD)).to.equal(6)
+    expect(res.getResult(stageE)).to.equal(9)
+    expect(res.getResult(stageF)).to.equal(11)
+    expect(res.getResult(stageG)).to.equal(15)
   })
 
   it('should support the "withSingleInput" factory function', async () => {
@@ -178,7 +178,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute(17)
 
-    expect(res.getOutputs(taskUnderTest.inport)).to.equal(17)
+    expect(res.getResult(taskUnderTest.inport)).to.equal(17)
   })
 
   it('should support the "withInputArray" factory function', async () => {
@@ -188,7 +188,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute([21, 23, 27])
 
-    expect(res.getOutputs(taskUnderTest.inport)).to.deep.equal([21, 23, 27])
+    expect(res.getResult(taskUnderTest.inport)).to.deep.equal([21, 23, 27])
   })
 
   it('should support the "withInputsNamed" factory function', async () => {
@@ -198,7 +198,7 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute({ a: 1, b: true, c: 'see?' })
 
-    expect(res.getOutputs(taskUnderTest.inport)).to.deep.equal({ a: 1, b: true, c: 'see?' })
+    expect(res.getResult(taskUnderTest.inport)).to.deep.equal({ a: 1, b: true, c: 'see?' })
   })
 
   it('should support the "withInputsShapedLike" factory function', async () => {
@@ -208,7 +208,43 @@ describe('oppgave', () => {
     // when
     const res = await taskUnderTest.execute({ a: 1, b: true, c: 'see?' })
 
-    expect(res.getOutputs(taskUnderTest.inport)).to.deep.equal({ a: 1, b: true, c: 'see?' })
+    expect(res.getResult(taskUnderTest.inport)).to.deep.equal({ a: 1, b: true, c: 'see?' })
+  })
+
+  it('should support a single stage waitFor', async () => {
+    // given
+    const taskUnderTest = Task.withSingleInput()
+    const stageA = taskUnderTest.addStage(taskUnderTest.inport, i => i * i)
+    const stageB = taskUnderTest.addStage(taskUnderTest.inport, () => new Promise(() => {}))
+
+    // when
+    const res = await taskUnderTest.execute(17).waitFor(stageA)
+
+    expect(res).to.equal(289)
+  })
+
+  it('should support an array of stages for waitFor', async () => {
+    // given
+    const taskUnderTest = Task.withSingleInput()
+    const stageA = taskUnderTest.addStage(taskUnderTest.inport, i => i * i)
+    const stageB = taskUnderTest.addStage(taskUnderTest.inport, i => Promise.resolve(3 * i))
+
+    // when
+    const res = await taskUnderTest.execute(6).waitFor([stageA, stageB])
+
+    expect(res).to.deep.equal([36, 18])
+  })
+
+  it('should support an object of stages for waitFor', async () => {
+    // given
+    const taskUnderTest = Task.withSingleInput()
+    const stageA = taskUnderTest.addStage(taskUnderTest.inport, i => i * i)
+    const stageB = taskUnderTest.addStage(taskUnderTest.inport, i => Promise.resolve(3 * i))
+
+    // when
+    const res = await taskUnderTest.execute(12).waitFor({ a: stageA, b: stageB, c: stageB })
+
+    expect(res).to.deep.equal({ a: 144, b: 36, c: 36 })
   })
 
   // TODO: Test Failures.
