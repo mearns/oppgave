@@ -113,7 +113,20 @@ export default class Task {
 
     return Promise.all(stagePromises)
       .then(stageValues => ({
-        getOutputs: (stage) => stage._getFromArray(stageValues)
+        getOutputs: (stages) => {
+          if (isStage(stages)) {
+            return stages._getFromArray(stageValues)
+          } else if (Array.isArray(stages)) {
+            return stages.map(stage => stage._getFromArray(stageValues))
+          } else if (typeof stages === 'object') {
+            return buildObject(
+              Object.keys(stages),
+              outputName => stages[outputName]._getFromArray(stageValues)
+            )
+          } else {
+            throw new TypeError(`Unknown output shape: ${stages}`)
+          }
+        }
       }))
   }
 }

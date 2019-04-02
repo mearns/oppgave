@@ -117,4 +117,36 @@ describe('oppgave', () => {
     expect(res.getOutputs(stageB)).to.deep.equal(6)
     expect(res.getOutputs(stageC)).to.deep.equal(24)
   })
+
+  it('should support an array of output ports', async () => {
+    const taskUnderTest = new Task()
+    const stageA = taskUnderTest.addStage(taskUnderTest.inport, function stageA (x) { return x * x })
+    const stageB = taskUnderTest.addStage(taskUnderTest.inport, function stageB (x) { return 2 * x })
+    const stageC = taskUnderTest.addStage(taskUnderTest.inport, function stageC (x) { return 3 * (x ** 3) })
+
+    // when
+    const res = await taskUnderTest.execute(5)
+
+    expect(res.getOutputs([stageA, stageB, stageC])).to.deep.equal([
+      25,
+      10,
+      375
+    ])
+  })
+
+  it('should support an object of output ports', async () => {
+    const taskUnderTest = new Task()
+    const stageA = taskUnderTest.addStage(taskUnderTest.inport, function stageA (x) { return x * x })
+    const stageB = taskUnderTest.addStage(taskUnderTest.inport, function stageB (x) { return 2 * x })
+    const stageC = taskUnderTest.addStage(taskUnderTest.inport, function stageC (x) { return 3 * (x ** 3) })
+
+    // when
+    const res = await taskUnderTest.execute(4)
+
+    expect(res.getOutputs({ a: stageA, b: stageB, c: stageC })).to.deep.equal({
+      a: 16,
+      b: 8,
+      c: 192
+    })
+  })
 })
