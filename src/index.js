@@ -2,63 +2,103 @@ import Promise from 'bluebird'
 import Tracker from './tracker'
 import buildObject from 'build-object-better'
 import ExtrinsicPromise from 'extrinsic-promises'
+import { strict as assert } from 'assert'
+
+class Stage {
+  constructor (stageIdx) {
+    this._addPair = (pairs, second) => {
+      pairs.push([stageIdx, second])
+    }
+    this._getFromArray = (ari) => ari[stageIdx]
+  }
+}
 
 function isPromise (p) {
   return !!(p && typeof p.then === 'function')
 }
 
+function isStage (stage) {
+  return stage instanceof Stage
+}
+
 function createStage (stageIdx) {
-  return {
-    _addPair: (pairs, second) => {
-      pairs.push([stageIdx, second])
-    },
-    _getFromArray: (ari) => ari[stageIdx]
-  }
+  return new Stage(stageIdx)
+}
+
+function namedFunction (name, func) {
+  return ({
+    [name]: function (...args) { return func(...args) }
+  })[name]
 }
 
 export default class Task {
-  constructor () {
-    // Each node is just a transformation (possibly impure) from inputs to a value.
-    const inputFunction = function __input__ (input) { return input }
-    this._nodes = [inputFunction]
-
-    // An ordered pair of node (indices)
+  constructor (inputShape = null) {
+    // An ordered pair of node (indices into this._nodes, below)
     this._arrows = []
 
-    this.inputStage = createStage(0)
+    // Each node is just a transformation (possibly impure) from inputs to a value.
+    this._nodes = [{
+      computer: namedFunction('--fan-out--', input => input),
+      chainFromStagePromises: () => { throw new Error('The input node\'s chainFromStagePromises method should not be used') }
+    }]
+
+    const fanOutStage = createStage(0)
+    if (inputShape == null) {
+      this.inputStage = this.addStage(fanOutStage, namedFunction('--input--', (input) => input))
+    } else if (Number.isInteger(inputShape)) {
+      this.inputStage = new Array(inputShape).fill(null).map((ignore, idx) => {
+        this.addStage(fanOutStage, namedFunction(`--input-${idx}--`, (input) => input[idx]))
+      })
+    }
   }
 
-  addStage (inputStages, computer) {
+  addStage (inputShape, computer) {
     const nodeIdx = this._nodes.length
-    this._nodes.push(computer)
-    for (let stage of inputStages) {
-      stage._addPair(this._arrows, nodeIdx)
+    let chainFromStagePromises
+    let inputStages
+    if (isStage(inputShape)) {
+      const inputStage = inputShape
+      inputStages = [inputStage]
+      chainFromStagePromises = (inputPromises) => inputStage._getFromArray(inputPromises)
+    } else if (Array.isArray(inputShape)) {
+      const arrayOfInputStages = inputShape
+      inputStages = arrayOfInputStages
+      chainFromStagePromises = (inputPromises) => Promise.map(arrayOfInputStages, inputStage => inputStage._getFromArray(inputPromises))
+    } else {
+      const objectOfInputStages = inputShape
+      inputStages = Object.values(objectOfInputStages)
+      chainFromStagePromises = (inputPromises) => Promise.map(
+        Object.entries(objectOfInputStages),
+        ([inputName, inputStage]) => inputStage._getFromArray(inputPromises).then(inputValue => [inputName, inputValue])
+      )
+        .then(inputEntries => buildObject(inputEntries))
     }
+    for (let inputStage of inputStages) {
+      inputStage._addPair(this._arrows, nodeIdx)
+    }
+    this._nodes.push({ computer, chainFromStagePromises })
     return createStage(nodeIdx)
   }
 
   execute (input) {
     const nodes = []
     const stagePromises = []
-    for (let computer of this._nodes) {
+    for (let { computer, chainFromStagePromises } of this._nodes) {
       const node = {
         inputPromises: [],
         outputPromise: new ExtrinsicPromise(),
         computer,
+        chainFromStagePromises,
         name: computer.name
       }
       nodes.push(node)
       stagePromises.push(node.outputPromise)
     }
     const [inputNode] = nodes
-
-    for (let [srcIdx, sinkIdx] of this._arrows) {
-      nodes[sinkIdx].inputPromises.push(nodes[srcIdx].outputPromise)
-    }
-    inputNode.inputPromises = [Promise.resolve(input)]
+    inputNode.chainFromStagePromises = () => Promise.resolve(input)
 
     for (let node of nodes) {
-      node.ready = Promise.all(node.inputPromises)
+      node.ready = node.chainFromStagePromises(stagePromises)
       node.outputPromise.adopt(node.ready.then(inputs => {
         console.log(`(${node.name}) Received inputs:`, JSON.stringify(inputs))
         return node.computer(inputs)
@@ -67,7 +107,7 @@ export default class Task {
 
     return Promise.all(stagePromises)
       .then(stageValues => ({
-        getOutputs: (...stages) => stages.map(stage => stage._getFromArray(stageValues))
+        getOutputs: (stage) => stage._getFromArray(stageValues)
       }))
   }
 }
