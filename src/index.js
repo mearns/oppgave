@@ -2,7 +2,6 @@ import Promise from 'bluebird'
 import Tracker from './tracker'
 import buildObject from 'build-object-better'
 import ExtrinsicPromise from 'extrinsic-promises'
-import { strict as assert } from 'assert'
 
 class Stage {
   constructor (stageIdx) {
@@ -38,17 +37,24 @@ export default class Task {
 
     // Each node is just a transformation (possibly impure) from inputs to a value.
     this._nodes = [{
-      computer: namedFunction('--fan-out--', input => input),
+      computer: namedFunction('--input--', input => input),
       chainFromStagePromises: () => { throw new Error('The input node\'s chainFromStagePromises method should not be used') }
     }]
 
-    const fanOutStage = createStage(0)
+    const inputStage = createStage(0)
     if (inputShape == null) {
-      this.inputStage = this.addStage(fanOutStage, namedFunction('--input--', (input) => input))
+      this.inport = this.addStage(inputStage, namedFunction('--inport--', input => input))
     } else if (Number.isInteger(inputShape)) {
-      this.inputStage = new Array(inputShape).fill(null).map((ignore, idx) => {
-        this.addStage(fanOutStage, namedFunction(`--input-${idx}--`, (input) => input[idx]))
+      this.inport = new Array(inputShape).fill(null).map((ignore, idx) => {
+        return this.addStage(inputStage, namedFunction(`--inport-${idx}--`, (input) => input[idx]))
       })
+    } else if (Array.isArray(inputShape)) {
+      this.inport = buildObject(
+        inputShape,
+        inputName => this.addStage(inputStage, namedFunction(`--inport-${inputName}--`, (input) => input[inputName]))
+      )
+    } else {
+      throw new TypeError(`Unexpected input port shape: ${inputShape}`)
     }
   }
 
