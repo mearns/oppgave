@@ -130,3 +130,18 @@ export default class Task {
       }))
   }
 }
+Task.withSingleInput = function () {
+  return new Task(null)
+}
+
+Task.withInputArray = function (length) {
+  return new Task(length)
+}
+
+Task.withInputsNamed = function (names) {
+  return new Task(names)
+}
+
+Task.withInputsShapedLike = function (obj) {
+  return new Task(Object.keys(obj))
+}

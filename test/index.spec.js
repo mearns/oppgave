@@ -170,4 +170,46 @@ describe('oppgave', () => {
     expect(res.getOutputs(stageF)).to.equal(11)
     expect(res.getOutputs(stageG)).to.equal(15)
   })
+
+  it('should support the "withSingleInput" factory function', async () => {
+    // given
+    const taskUnderTest = Task.withSingleInput()
+
+    // when
+    const res = await taskUnderTest.execute(17)
+
+    expect(res.getOutputs(taskUnderTest.inport)).to.equal(17)
+  })
+
+  it('should support the "withInputArray" factory function', async () => {
+    // given
+    const taskUnderTest = Task.withInputArray(3)
+
+    // when
+    const res = await taskUnderTest.execute([21, 23, 27])
+
+    expect(res.getOutputs(taskUnderTest.inport)).to.deep.equal([21, 23, 27])
+  })
+
+  it('should support the "withInputsNamed" factory function', async () => {
+    // given
+    const taskUnderTest = Task.withInputsNamed(['a', 'b', 'c'])
+
+    // when
+    const res = await taskUnderTest.execute({ a: 1, b: true, c: 'see?' })
+
+    expect(res.getOutputs(taskUnderTest.inport)).to.deep.equal({ a: 1, b: true, c: 'see?' })
+  })
+
+  it('should support the "withInputsShapedLike" factory function', async () => {
+    // given
+    const taskUnderTest = Task.withInputsShapedLike({ a: null, b: null, c: undefined })
+
+    // when
+    const res = await taskUnderTest.execute({ a: 1, b: true, c: 'see?' })
+
+    expect(res.getOutputs(taskUnderTest.inport)).to.deep.equal({ a: 1, b: true, c: 'see?' })
+  })
+
+  // TODO: Test Failures.
 })
