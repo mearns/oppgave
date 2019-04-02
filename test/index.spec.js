@@ -149,4 +149,25 @@ describe('oppgave', () => {
       c: 192
     })
   })
+
+  it('should support complex computation graphs', async () => {
+    // given
+    const taskUnderTest = new Task(['a', 'b', 'c'])
+    const { a: inportA, b: inportB, c: inportC } = taskUnderTest.inport
+    const stageD = taskUnderTest.addStage([inportA, inportC], function stageD ([a, c]) { return Promise.resolve(a + c) })
+    const stageE = taskUnderTest.addStage({ b: inportB }, function stageE ({ b }) { return b * b })
+    const stageF = taskUnderTest.addStage([stageD, inportA, inportB], async function stageF ([ d, a, b ]) {
+      const i = await Promise.resolve(d + a)
+      return i + b
+    })
+    const stageG = taskUnderTest.addStage({ d: stageD, e: stageE }, function stageG ({ d, e }) { return d + e })
+
+    // when
+    const res = await taskUnderTest.execute({ a: 2, b: 3, c: 4 })
+
+    expect(res.getOutputs(stageD)).to.equal(6)
+    expect(res.getOutputs(stageE)).to.equal(9)
+    expect(res.getOutputs(stageF)).to.equal(11)
+    expect(res.getOutputs(stageG)).to.equal(15)
+  })
 })
