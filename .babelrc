@@ -10,7 +10,6 @@
   ],
   "plugins": [
     "@babel/plugin-transform-object-assign",
-    "@babel/plugin-proposal-object-rest-spread",
-    "source-map-support"
+    "@babel/plugin-proposal-object-rest-spread"
   ]
 }
