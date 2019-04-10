@@ -12,10 +12,6 @@ class Stage {
   }
 }
 
-function isPromise (p) {
-  return !!(p && typeof p.then === 'function')
-}
-
 function isStage (stage) {
   return stage instanceof Stage
 }
@@ -86,7 +82,7 @@ export default class Task {
     return createStage(nodeIdx)
   }
 
-  execute (input) {
+  execute (input, tracker = Tracker.dummy) {
     const nodes = []
     const stagePromises = []
     for (let { computer, chainFromStagePromises } of this._nodes) {
@@ -95,7 +91,8 @@ export default class Task {
         outputPromise: new ExtrinsicPromise(),
         computer,
         chainFromStagePromises,
-        name: computer.name
+        name: computer.name,
+        idx: nodes.length
       }
       nodes.push(node)
       stagePromises.push(node.outputPromise)
@@ -104,11 +101,23 @@ export default class Task {
     inputNode.chainFromStagePromises = () => Promise.resolve(input)
 
     for (let node of nodes) {
-      node.ready = node.chainFromStagePromises(stagePromises)
-      node.outputPromise.adopt(node.ready.then(inputs => {
-        console.log(`(${node.name}) Received inputs:`, JSON.stringify(inputs))
-        return node.computer(inputs)
-      }))
+      const inputStagesReady = node.chainFromStagePromises(stagePromises)
+      const stageComplete = inputStagesReady
+        .then(inputs => {
+          tracker.stageStarted(node.idx, inputs);
+          return node.computer(inputs)
+        })
+        .then(
+          res => {
+            tracker.stageCompleted(node.idx, res)
+            return res
+          },
+          error => {
+            tracker.stageFailed(node.idx, error)
+            throw error
+          }
+        )
+      node.outputPromise.adopt(stageComplete);
     }
 
     const p = Promise.all(stagePromises)
