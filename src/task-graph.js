@@ -16,6 +16,10 @@ class TaskGraph {
         return taskIdx;
     }
 
+    wireInputTo(toTask) {
+        this.addWire(INPUT_UNTASK_IDX, toTask);
+    }
+
     addWire(fromTask, toTask) {
         this._outEdges[fromTask].push(toTask);
     }
