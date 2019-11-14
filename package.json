@@ -38,24 +38,6 @@
   ],
   "author": "Brian Mearns <mearns.b@gmail.com>",
   "license": "MIT",
-  "nyc": {
-    "reporter": [
-      "text",
-      "lcov"
-    ],
-    "require": [
-      "@babel/register"
-    ],
-    "include": [
-      "src/**"
-    ],
-    "all": true,
-    "check-coverage": true,
-    "statements": 70,
-    "branches": 70,
-    "functions": 70,
-    "lines": 70
-  },
   "devDependencies": {
     "chai": "^4.2.0",
     "eslint": "^6.6.0",
