@@ -1,61 +1,30 @@
-const { topologicalSort } = require("./graph-utils");
-const assert = require("assert");
+const { PureSyncTask } = require("./task");
+const TaskGraph = require("./task-graph");
 
-const INPUT_UNTASK_IDX = 0;
+const createMagicPipe = (taskGraph, taskIdx) => func =>
+    func(taskGraph, taskIdx);
 
-class TaskGraph {
-    constructor() {
-        this._tasks = [null];
-        this._outEdges = [[]];
-    }
+const createMagicTask = task => magicPipe =>
+    magicPipe((taskGraph, taskIdx) => {
+        const destTaskIdx = taskGraph.addTask(task);
+        taskGraph.addWire(taskIdx, destTaskIdx);
+        return createMagicPipe(taskGraph, destTaskIdx);
+    });
 
-    addTask(task) {
-        const taskIdx = this._tasks.length;
-        this._tasks.push(task);
-        this._outEdges.push([]);
-        return taskIdx;
-    }
+const createMagicResult = resultsArray => magicPipe =>
+    magicPipe((taskGraph, taskIdx) => resultsArray[taskIdx]);
 
-    addWire(fromTask, toTask) {
-        this._outEdges[fromTask].push(toTask);
-    }
+const supertask = () => {
+    const graph = new TaskGraph();
+    const inputPipe = createMagicPipe(graph, 0);
+    return {
+        input: inputPipe,
+        runSync: inputValue => createMagicResult(graph.runSync(inputValue))
+    };
+};
 
-    runSync(input) {
-        const sortedIndexes = topologicalSort(this._outEdges);
-        const inEdges = sortedIndexes.map(() => []);
-        this._outEdges.forEach((outEdges, taskIdx) => {
-            outEdges.forEach(dest => {
-                inEdges[dest].push(taskIdx);
-            });
-        });
-        const pipeValues = sortedIndexes.map(() => []);
-        pipeValues[INPUT_UNTASK_IDX] = input;
-        for (const taskIdx of sortedIndexes) {
-            const sources = inEdges[taskIdx];
-            const inputValues = sources.map(idx => pipeValues[idx]);
-            assert(
-                inputValues.every(v => v.length === 1),
-                `Input tasks [${sources
-                    .map(String)
-                    .join(", ")}] for task ${taskIdx} are not all defined`
-            );
-            assert(
-                pipeValues[taskIdx].length === 0,
-                `Task ${taskIdx} already has a value....?`
-            );
-            if (taskIdx === INPUT_UNTASK_IDX) {
-                assert(
-                    this._tasks[taskIdx] === null,
-                    `Input task should be null`
-                );
-                assert(
-                    inputValues.length === 0,
-                    `Input task has inputs....huh?`
-                );
-            } else {
-                pipeValues[taskIdx] = this._tasks[taskIdx].runSync(inputValues);
-            }
-        }
-        return pipeValues;
-    }
-}
+supertask.Task = {};
+supertask.Task.pure = {};
+supertask.Task.pure.sync = func => createMagicTask(new PureSyncTask(func));
+
+module.exports = supertask;
