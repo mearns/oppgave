@@ -5,10 +5,12 @@ const TaskGraph = require("./task-graph");
  * A magic pipe encapsulates a specific task in a task graph. The magic pipe is a function
  * which takes a function and applies it to the task (as a TaskGraph and taskId).
  * @param {TaskGraph} taskGraph The graph
- * @param {TaskId} taskIdx The ID of the task to create a pipe for.
+ * @param {TaskId} taskId The ID of the task to create a pipe for.
  */
-const createMagicPipe = (taskGraph, taskIdx) => func =>
-    func(taskGraph, taskIdx);
+const createMagicPipe = (taskGraph, taskId) => func => func(taskGraph, taskId);
+
+const getGraphFromPipe = pipe => pipe(graph => graph);
+const getTaskIdFromPipe = pipe => pipe((graph, taskId) => taskId);
 
 /**
  * A magic task is a function tied to a Task; the function takes a magic pipe
@@ -17,12 +19,20 @@ const createMagicPipe = (taskGraph, taskIdx) => func =>
  * magic pipe for added task.
  * @param {Task} task
  */
-const createMagicTask = task => magicPipe =>
-    magicPipe((taskGraph, taskIdx) => {
-        const destTaskIdx = taskGraph.addTask(task);
-        taskGraph.addWire(taskIdx, destTaskIdx);
-        return createMagicPipe(taskGraph, destTaskIdx);
-    });
+const createMagicTask = task => (magicPipe, ...otherPipes) => {
+    const graph = getGraphFromPipe(magicPipe);
+    if (otherPipes.some(pipe => graph !== getGraphFromPipe(pipe))) {
+        // TODO: Actually, maybe you can. Could we just create a new graph with
+        // the inputs as subgraphs?
+        throw new Error("Cannot merge multiple tasks");
+    }
+    const destTaskIdx = graph.addTask(task);
+    graph.addWire(getTaskIdFromPipe(magicPipe), destTaskIdx);
+    otherPipes.forEach(pipe =>
+        graph.addWire(getTaskIdFromPipe(pipe), destTaskIdx)
+    );
+    return createMagicPipe(graph, destTaskIdx);
+};
 
 /**
  * A magic result encapsulates the results of a task graph execution,
