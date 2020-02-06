@@ -1,3 +1,9 @@
+/**
+ * This is a utility module. It does the hard work of actually defining and executing
+ * a task graph, but there's not a lot of book-keeping or anything to make it easy to
+ * actually use. That's why you use the magic wires and stuff from the index.
+ */
+
 const { topologicalSort } = require("./graph-utils");
 const assert = require("assert");
 
@@ -9,6 +15,12 @@ class TaskGraph {
         this._outEdges = [[]];
     }
 
+    /**
+     * Add a task to the graph, but not connected to anything.
+     * @param {*} task
+     * @sync
+     * @returns {TaskId} The ID of the new task.
+     */
     addTask(task) {
         const taskIdx = this._tasks.length;
         this._tasks.push(task);
@@ -16,34 +28,60 @@ class TaskGraph {
         return taskIdx;
     }
 
+    /**
+     * Wire up the graph's hypothetical input to the specified task.
+     * @param {TaskId} toTask
+     */
     wireInputTo(toTask) {
         this.addWire(INPUT_UNTASK_IDX, toTask);
     }
 
+    /**
+     * Add a wire from the one task to the other. This means that when the `fromTask`
+     * completes, it's output will be provided to the `toTask`.
+     * @param {TaskId} fromTask
+     * @param {TaskId} toTask
+     */
     addWire(fromTask, toTask) {
         this._outEdges[fromTask].push(toTask);
     }
 
+    /**
+     * Execute the graph with the given input values. Each task is invoked (through its `runSync`
+     * method), passed an array of the values from its inputs, in the order they were added.
+     * @sync
+     * @param {*} input The input value.
+     * @returns {Array<*>} An array of the task output values, indexed by task id.
+     */
     runSync(input) {
+        // Sort the tasks based on the order they need to execute in.
         const sortedIndexes = topologicalSort(this._outEdges);
+
+        // Reverse our wire lookup. inEdges will be a LUT by the destination (output)
+        // taskId containing a list of the input taskIds for it.
         const inEdges = sortedIndexes.map(() => []);
         this._outEdges.forEach((outEdges, taskIdx) => {
             outEdges.forEach(dest => {
                 inEdges[dest].push(taskIdx);
             });
         });
-        const pipeValues = sortedIndexes.map(() => []);
+
+        // This will hold the output values from each task. Basically the
+        // value in the wire coming out of the task.
+        const wires = sortedIndexes.map(() => []);
+
+        // Execute them in topological order.
         for (const taskIdx of sortedIndexes) {
             const sources = inEdges[taskIdx];
-            const inputValues = sources.map(idx => pipeValues[idx]);
+            const inputWires = sources.map(idx => wires[idx]);
             assert(
-                inputValues.every(v => v.length === 1),
+                inputWires.every(v => v.length === 1),
                 `Input tasks [${sources
                     .map(String)
                     .join(", ")}] for task ${taskIdx} are not all defined`
             );
             assert(
-                pipeValues[taskIdx].length === 0,
+                wires[taskIdx].length === 0,
                 `Task ${taskIdx} already has a value....?`
             );
             if (taskIdx === INPUT_UNTASK_IDX) {
@@ -52,18 +90,29 @@ class TaskGraph {
                     `Input task should be null`
                 );
                 assert(
-                    inputValues.length === 0,
-                    `Input task has inputs....huh?`
+                    inputWires.length === 0,
+                    `Input task has inputs....huh? ${inputWires
+                        .map(String)
+                        .join(", ")}`
                 );
-                pipeValues[taskIdx].push(input);
+                // Wire value coming "out" of the input "task" ("untask")
+                // is the input value.
+                wires[taskIdx].push(input);
             } else {
-                pipeValues[taskIdx].push(
-                    this._tasks[taskIdx].runSync(inputValues)
+                // Run the task and put it's value on the wire.
+                const value = this._tasks[taskIdx].runSync(
+                    inputWires.map(([v]) => v)
                 );
+                wires[taskIdx].push(value);
             }
         }
-        assert(pipeValues.every(v => v.length === 1));
-        return pipeValues.map(([v]) => v);
+        assert(
+            wires.every(v => v.length === 1),
+            "Not every wire has a value defined"
+        );
+
+        // Unwrap the Optionals on our wires.
+        return wires.map(([v]) => v);
     }
 }
 

@@ -10,13 +10,23 @@ const { expect } = require("chai");
 
 describe("magic", () => {
     it("should do what it does", () => {
-        const task1 = Task.pure.sync(x => 3 * x * x + 5);
+        const task1 = Task.pure.sync(x => x + "-1");
+        const task2 = Task.pure.sync(x => x + "-2");
+        const task3 = Task.pure.sync(x => x + "-3");
+        const task4 = Task.pure.sync((x, y) => x + y + "-4");
         const st = supertask();
-        const opipe = task1(st.input);
+        const p0 = st.input;
+        const p1 = task1(p0);
+        const p2 = task2(p1);
+        const p3 = task3(p1);
+        const p4 = task4(p2, p3);
 
-        const results = st.runSync(7);
+        const results = st.runSync("in");
 
-        expect(results(st.input)).to.equal(7);
-        expect(results(opipe)).to.equal(152);
+        expect(results(p0)).to.equal("in");
+        expect(results(p1)).to.equal("in-1");
+        expect(results(p2)).to.equal("in-1-2");
+        expect(results(p3)).to.equal("in-1-3");
+        expect(results(p4)).to.equal("in-1-2in-1-3-4");
     });
 });
