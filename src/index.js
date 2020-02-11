@@ -43,7 +43,7 @@ const reduceInputs = inputs => {
             });
         }
     });
-    console.log(magicPipes);
+    console.log("Results of reducing", magicPipes);
     return { magicPipes, inputShapers };
 };
 
@@ -58,6 +58,7 @@ const createMagicTask = task => (...inputs) => {
     const { magicPipes, inputShapers } = reduceInputs(inputs);
     const modifiedTask = task.wrap(func => (...inputs) => {
         const shapedInputs = inputShapers.map(shaper => shaper(inputs));
+        // const p4 = task4(p2, p3, [p1, p0], { x: p3 });
         console.log("WWWW", inputs, shapedInputs);
         return func(...inputShapers.map(shaper => shaper(inputs)));
     });

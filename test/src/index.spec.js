@@ -21,7 +21,6 @@ describe("magic", () => {
         const p1 = task1(p0);
         const p2 = task2(p1);
         const p3 = task3(p1);
-        // FIXME: The shape is ok, but the values are pulling from the wrong wires.
         const p4 = task4(p2, p3, [p1, p0], { x: p3 });
 
         const results = st.runSync("in");

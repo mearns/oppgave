@@ -12,7 +12,7 @@ const INPUT_UNTASK_IDX = 0;
 class TaskGraph {
     constructor() {
         this._tasks = [null];
-        this._outEdges = [[]];
+        this._inEdges = [[]];
     }
 
     /**
@@ -24,7 +24,7 @@ class TaskGraph {
     addTask(task) {
         const taskIdx = this._tasks.length;
         this._tasks.push(task);
-        this._outEdges.push([]);
+        this._inEdges.push([]);
         return taskIdx;
     }
 
@@ -43,7 +43,7 @@ class TaskGraph {
      * @param {TaskId} toTask
      */
     addWire(fromTask, toTask) {
-        this._outEdges[fromTask].push(toTask);
+        this._inEdges[toTask].push(fromTask);
     }
 
     /**
@@ -54,17 +54,19 @@ class TaskGraph {
      * @returns {Array<*>} An array of the task output values, indexed by task id.
      */
     runSync(input) {
-        // Sort the tasks based on the order they need to execute in.
-        const sortedIndexes = topologicalSort(this._outEdges);
-
         // Reverse our wire lookup. inEdges will be a LUT by the destination (output)
         // taskId containing a list of the input taskIds for it.
-        const inEdges = sortedIndexes.map(() => []);
-        this._outEdges.forEach((outEdges, taskIdx) => {
-            outEdges.forEach(dest => {
-                inEdges[dest].push(taskIdx);
+        const outEdges = this._tasks.map(() => []);
+        this._inEdges.forEach((inEdges, destTaskIdx) => {
+            inEdges.forEach(source => {
+                outEdges[source].push(destTaskIdx);
             });
         });
+        console.log("Starting with in-edges", this._inEdges);
+        console.log("Found out edges", outEdges);
+
+        // Sort the tasks based on the order they need to execute in.
+        const sortedIndexes = topologicalSort(outEdges);
 
         // This will hold the output values from each task. Basically the
         // value in the wire coming out of the task.
@@ -72,7 +74,7 @@ class TaskGraph {
 
         // Execute them in topological order.
         for (const taskIdx of sortedIndexes) {
-            const sources = inEdges[taskIdx];
+            const sources = this._inEdges[taskIdx];
             const inputWires = sources.map(idx => wires[idx]);
             assert(
                 inputWires.every(v => v.length === 1),
