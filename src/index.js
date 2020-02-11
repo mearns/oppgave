@@ -1,5 +1,8 @@
 const { PureSyncTask } = require("./task");
 const TaskGraph = require("./task-graph");
+const assert = require("assert");
+
+const MAGIC = Symbol("obladi oblada");
 
 /**
  * A magic pipe encapsulates a specific task in a task graph. The magic pipe is a function
@@ -9,19 +12,29 @@ const TaskGraph = require("./task-graph");
  */
 const createMagicPipe = (taskGraph, taskId) => {
     const name = `magicPipe-${taskId}`;
-    return {
+    const func = {
         [name]: func => func(taskGraph, taskId)
     }[name];
+    func[MAGIC] = true;
+    return func;
 };
 
-const getGraphFromPipe = pipe => pipe(graph => graph);
-const getTaskIdFromPipe = pipe => pipe((graph, taskId) => taskId);
+const isMagic = x => x && x[MAGIC] === true;
+
+const getGraphFromPipe = pipe => {
+    assert(isMagic(pipe));
+    return pipe(graph => graph);
+};
+const getTaskIdFromPipe = pipe => {
+    assert(isMagic(pipe));
+    return pipe((graph, taskId) => taskId);
+};
 
 const reduceInputs = inputs => {
     const magicPipes = [];
     const inputShapers = [];
     const pipeMap = new Map();
-    const createInputGetter = magicPipe => {
+    const magicPipeToInputGetter = magicPipe => {
         const taskIdx = getTaskIdFromPipe(magicPipe);
         if (pipeMap.has(taskIdx)) {
             const inputIdx = pipeMap.get(taskIdx);
@@ -32,26 +45,27 @@ const reduceInputs = inputs => {
         pipeMap.set(taskIdx, inputIdx);
         return inputs => inputs[inputIdx];
     };
-    inputs.forEach(input => {
-        if (typeof input === "function") {
-            inputShapers.push(createInputGetter(input));
+    const createInputGetter = input => {
+        if (isMagic(input)) {
+            return magicPipeToInputGetter(input);
         } else if (Array.isArray(input)) {
             const inputGetters = input.map(createInputGetter);
-            inputShapers.push(inputs => inputGetters.map(get => get(inputs)));
+            return inputs => inputGetters.map(get => get(inputs));
         } else {
             const inputEntries = Object.entries(input);
             const inputGetterEntries = inputEntries.map(([k, v]) => [
                 k,
                 createInputGetter(v)
             ]);
-            inputShapers.push(inputs => {
+            return inputs => {
                 return inputGetterEntries.reduce((o, [k, get]) => {
                     o[k] = get(inputs);
                     return o;
                 }, {});
-            });
+            };
         }
-    });
+    };
+    inputs.forEach(input => inputShapers.push(createInputGetter(input)));
     return { magicPipes, inputShapers };
 };
 
