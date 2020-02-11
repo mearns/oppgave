@@ -62,8 +62,6 @@ class TaskGraph {
                 outEdges[source].push(destTaskIdx);
             });
         });
-        console.log("Starting with in-edges", this._inEdges);
-        console.log("Found out edges", outEdges);
 
         // Sort the tasks based on the order they need to execute in.
         const sortedIndexes = topologicalSort(outEdges);

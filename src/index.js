@@ -20,30 +20,38 @@ const getTaskIdFromPipe = pipe => pipe((graph, taskId) => taskId);
 const reduceInputs = inputs => {
     const magicPipes = [];
     const inputShapers = [];
-    inputs.forEach(input => {
+    const pipeMap = new Map();
+    const createInputGetter = magicPipe => {
+        const taskIdx = getTaskIdFromPipe(magicPipe);
+        if (pipeMap.has(taskIdx)) {
+            const inputIdx = pipeMap.get(taskIdx);
+            return inputs => inputs[inputIdx];
+        }
         const inputIdx = magicPipes.length;
-        if (Array.isArray(input)) {
-            const inputCount = input.length;
-            magicPipes.push(...input);
-            inputShapers.push(inputs =>
-                inputs.slice(inputIdx, inputIdx + inputCount)
-            );
-        } else if (typeof input === "function") {
-            magicPipes.push(input);
-            inputShapers.push(inputs => inputs[inputIdx]);
+        magicPipes.push(magicPipe);
+        pipeMap.set(taskIdx, inputIdx);
+        return inputs => inputs[inputIdx];
+    };
+    inputs.forEach(input => {
+        if (typeof input === "function") {
+            inputShapers.push(createInputGetter(input));
+        } else if (Array.isArray(input)) {
+            const inputGetters = input.map(createInputGetter);
+            inputShapers.push(inputs => inputGetters.map(get => get(inputs)));
         } else {
             const inputEntries = Object.entries(input);
-            const inputPipes = inputEntries.map(([k, v]) => v);
-            magicPipes.push(...inputPipes);
+            const inputGetterEntries = inputEntries.map(([k, v]) => [
+                k,
+                createInputGetter(v)
+            ]);
             inputShapers.push(inputs => {
-                return inputEntries.reduce((o, [k], idx) => {
-                    o[k] = inputs[inputIdx + idx];
+                return inputGetterEntries.reduce((o, [k, get]) => {
+                    o[k] = get(inputs);
                     return o;
                 }, {});
             });
         }
     });
-    console.log("Results of reducing", magicPipes);
     return { magicPipes, inputShapers };
 };
 
@@ -58,9 +66,7 @@ const createMagicTask = task => (...inputs) => {
     const { magicPipes, inputShapers } = reduceInputs(inputs);
     const modifiedTask = task.wrap(func => (...inputs) => {
         const shapedInputs = inputShapers.map(shaper => shaper(inputs));
-        // const p4 = task4(p2, p3, [p1, p0], { x: p3 });
-        console.log("WWWW", inputs, shapedInputs);
-        return func(...inputShapers.map(shaper => shaper(inputs)));
+        return func(...shapedInputs);
     });
     const [magicPipe, ...otherPipes] = magicPipes;
     const graph = getGraphFromPipe(magicPipe);
