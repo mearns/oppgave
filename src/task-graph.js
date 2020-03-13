@@ -11,13 +11,14 @@ const INPUT_UNTASK_IDX = 0;
 
 class TaskGraph {
     constructor() {
+        // The vertices in the graph (i.e., the tasks to execute)
         this._tasks = [null];
         this._inEdges = [[]];
     }
 
     /**
      * Add a task to the graph, but not connected to anything.
-     * @param {*} task
+     * @param {Task} task
      * @sync
      * @returns {TaskId} The ID of the new task.
      */
@@ -48,12 +49,15 @@ class TaskGraph {
 
     /**
      * Execute the graph with the given input values. Each task is invoked (through its `runSync`
-     * method), passed an array of the values from its inputs, in the order they were added.
-     * @sync
+     * method), passed an array of the values from its inputs, in the order those inputs were added.
+     * @async
      * @param {*} input The input value.
      * @returns {Array<*>} An array of the task output values, indexed by task id.
      */
-    runSync(input) {
+    async run(
+        input,
+        { onStart = () => {}, onFinish = () => {}, onError = () => {} } = {}
+    ) {
         // Reverse our wire lookup. inEdges will be a LUT by the destination (output)
         // taskId containing a list of the input taskIds for it.
         const outEdges = this._tasks.map(() => []);
@@ -100,9 +104,16 @@ class TaskGraph {
                 wires[taskIdx].push(input);
             } else {
                 // Run the task and put it's value on the wire.
-                const value = this._tasks[taskIdx].runSync(
-                    inputWires.map(([v]) => v)
-                );
+                const taskInputs = inputWires.map(([v]) => v);
+                const cookie = onStart(taskIdx, taskInputs);
+                let value;
+                try {
+                    value = this._tasks[taskIdx].runSync(taskInputs);
+                } catch (error) {
+                    onError(error, taskIdx, taskInputs, cookie);
+                    throw error;
+                }
+                onFinish(value, taskIdx, taskInputs, cookie);
                 wires[taskIdx].push(value);
             }
         }

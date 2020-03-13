@@ -105,17 +105,19 @@ const createMagicTask = task => (...inputs) => {
 const createMagicResult = resultsArray => magicPipe =>
     magicPipe((taskGraph, taskIdx) => resultsArray[taskIdx]);
 
-const supertask = () => {
+const supertask = ({ onStart, onFinish, onError } = {}) => {
+    // XXX: Wrap hooks with inputShapers
+    // XXX FIXME Actually, no. We probably don't need these hooks, we need something to shape the wires, maybe
+    // at the end, for reporting. And separately, maybe signals for telling it it needs to abort or that it
+    // has run out of time. (maybe not both).
     const graph = new TaskGraph();
     const inputPipe = createMagicPipe(graph, 0);
     return {
         input: inputPipe,
-        runSync: inputValue => createMagicResult(graph.runSync(inputValue))
+        run: async inputValue => createMagicResult(await graph.run(inputValue))
     };
 };
 
-supertask.Task = {};
-supertask.Task.pure = {};
-supertask.Task.pure.sync = func => createMagicTask(new PureSyncTask(func));
+supertask.Task = func => createMagicTask(new PureSyncTask(func));
 
 module.exports = supertask;

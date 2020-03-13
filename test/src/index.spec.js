@@ -9,13 +9,11 @@ const { Task } = supertask;
 const { expect } = require("chai");
 
 describe("magic", () => {
-    it("should do what it does", () => {
-        const task1 = Task.pure.sync(x => x + "-1");
-        const task2 = Task.pure.sync(x => x + "-2");
-        const task3 = Task.pure.sync(x => x + "-3");
-        const task4 = Task.pure.sync((a, b, [c, d], { x }) =>
-            [a, b, c, d, x].join("_")
-        );
+    it("should do what it does", async () => {
+        const task1 = Task(x => x + "-1");
+        const task2 = Task(x => x + "-2");
+        const task3 = Task(x => x + "-3");
+        const task4 = Task((a, b, [c, d], { x }) => [a, b, c, d, x].join("_"));
         const st = supertask();
         const p0 = st.input;
         const p1 = task1(p0);
@@ -23,7 +21,7 @@ describe("magic", () => {
         const p3 = task3(p1);
         const p4 = task4(p2, p3, [p1, p0], { x: p3 });
 
-        const results = st.runSync("in");
+        const results = await st.run("in");
 
         expect(results(p0)).to.equal("in");
         expect(results(p1)).to.equal("in-1");
@@ -32,11 +30,11 @@ describe("magic", () => {
         expect(results(p4)).to.equal("in-1-2_in-1-3_in-1_in_in-1-3");
     });
 
-    it("should support deeply nested shaped inputs", () => {
-        const task1 = Task.pure.sync(x => x + "-1");
-        const task2 = Task.pure.sync(x => x + "-2");
-        const task3 = Task.pure.sync(x => x + "-3");
-        const task4 = Task.pure.sync(
+    it("should support deeply nested shaped inputs", async () => {
+        const task1 = Task(x => x + "-1");
+        const task2 = Task(x => x + "-2");
+        const task3 = Task(x => x + "-3");
+        const task4 = Task(
             (a, b, [c, d, [e, f], g], { x, y: [h, i], z: { j, k } }) =>
                 [a, b, c, d, e, f, g, h, i, j, k, x].join("_")
         );
@@ -51,7 +49,7 @@ describe("magic", () => {
             z: { j: p3, k: p1 } // { j, k }
         });
 
-        const results = st.runSync("in");
+        const results = await st.run("in");
 
         expect(results(p0)).to.equal("in");
         expect(results(p1)).to.equal("in-1");

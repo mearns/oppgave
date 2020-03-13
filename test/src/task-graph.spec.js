@@ -8,7 +8,7 @@ const TaskGraph = require("../../src/task-graph");
 const { expect } = require("chai");
 
 describe("task-graph", () => {
-    it("should do what it does", () => {
+    it("should do what it does", async () => {
         // given
         const graph = new TaskGraph();
         const t1 = graph.addTask(mockTask(x => x * x * x));
@@ -19,14 +19,14 @@ describe("task-graph", () => {
         graph.addWire(t2, t3);
 
         // when
-        const values = graph.runSync(3);
+        const values = await graph.run(3);
 
         // expect
         expect(values[0]).to.equal(3);
         expect(values[t1]).to.equal(27);
     });
 
-    it("should handle multiple inputs to a task", () => {
+    it("should handle multiple inputs to a task", async () => {
         // given
         const graph = new TaskGraph();
         const t1 = graph.addTask(mockTask(x => x + "-1"));
@@ -40,7 +40,7 @@ describe("task-graph", () => {
         graph.addWire(t3, t4);
 
         // when
-        const values = graph.runSync("S");
+        const values = await graph.run("S");
 
         // expect
         expect(values[0]).to.equal("S");
