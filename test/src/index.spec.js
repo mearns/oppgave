@@ -32,7 +32,7 @@ describe("magic", () => {
         expect(results(p4)).to.equal("in-1-2_in-1-3_in-1_in_in-1-3");
     });
 
-    it("should do what it does 2", () => {
+    it("should support deeply nested shaped inputs", () => {
         const task1 = Task.pure.sync(x => x + "-1");
         const task2 = Task.pure.sync(x => x + "-2");
         const task3 = Task.pure.sync(x => x + "-3");
