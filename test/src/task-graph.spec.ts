@@ -53,6 +53,6 @@ describe("task-graph", () => {
 
 function mockTask(func) {
     return {
-        runSync: inputs => func(...inputs)
+        run: inputs => func(...inputs)
     };
 }

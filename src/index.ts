@@ -1,4 +1,4 @@
-const { PureSyncTask } = require("./task");
+const Task = require("./task");
 const TaskGraph = require("./task-graph");
 const assert = require("assert");
 
@@ -105,11 +105,7 @@ const createMagicTask = task => (...inputs) => {
 const createMagicResult = resultsArray => magicPipe =>
     magicPipe((taskGraph, taskIdx) => resultsArray[taskIdx]);
 
-const supertask = ({ onStart, onFinish, onError } = {}) => {
-    // XXX: Wrap hooks with inputShapers
-    // XXX FIXME Actually, no. We probably don't need these hooks, we need something to shape the wires, maybe
-    // at the end, for reporting. And separately, maybe signals for telling it it needs to abort or that it
-    // has run out of time. (maybe not both).
+const supertask = () => {
     const graph = new TaskGraph();
     const inputPipe = createMagicPipe(graph, 0);
     return {
@@ -118,6 +114,6 @@ const supertask = ({ onStart, onFinish, onError } = {}) => {
     };
 };
 
-supertask.Task = func => createMagicTask(new PureSyncTask(func));
+supertask.Task = func => createMagicTask(Task(func));
 
 module.exports = supertask;

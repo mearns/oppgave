@@ -48,8 +48,8 @@ class TaskGraph {
     }
 
     /**
-     * Execute the graph with the given input values. Each task is invoked (through its `runSync`
-     * method), passed an array of the values from its inputs, in the order those inputs were added.
+     * Execute the graph with the given input values. Each task is invoked with an array of
+     * the values from its inputs, in the order those inputs were added.
      * @async
      * @param {*} input The input value.
      * @returns {Array<*>} An array of the task output values, indexed by task id.
@@ -108,7 +108,7 @@ class TaskGraph {
                 const cookie = onStart(taskIdx, taskInputs);
                 let value;
                 try {
-                    value = this._tasks[taskIdx].runSync(taskInputs);
+                    value = this._tasks[taskIdx](taskInputs);
                 } catch (error) {
                     onError(error, taskIdx, taskInputs, cookie);
                     throw error;
